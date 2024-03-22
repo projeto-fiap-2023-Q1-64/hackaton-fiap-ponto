@@ -38,6 +38,12 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         if (usuarioId == null) {
             throw new EntradaInvalidaException(Ponto.CODIGO_AUSENTE);
         }
+        if (mes < 1 || mes > 12) {
+            throw new EntradaInvalidaException(Ponto.MES_INVALIDO);
+        }
+        if (ano < 2000) {
+            throw new EntradaInvalidaException(Ponto.ANO_INVALIDO);
+        }
         MesAno mesAnoRef = new MesAno(mes,ano);
         // Recupera todos os pontos lançados do mês
         List<Ponto> pontos = clienteRepositoryAdapterGateway.findByUsuarioIdAndMesEAno(usuarioId, mes, ano);
