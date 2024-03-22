@@ -65,46 +65,59 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
             // Lista dos pontos do dia corrente
             List<Ponto> pontosDoDia = entry.getValue();
 
-            // Para armazenar a data da ultima entrada
-            LocalDateTime entrada = null;
-            // Armazenar o tempo entre os intervalos (Inicializando com zero)
-            Duration tempoTrabalhado = Duration.ZERO;
+            //Recupera o trabalhado no dia
+            PontoDiario pontoDiario = generatePontoDiarioByPontoList(pontosDoDia, data);
 
-            // Loop para pegar os lançamentos do e contabilizar os intervalos de entradas e saídas
-            for (Ponto ponto: pontosDoDia) {
-                if(PontoEventType.ENTRADA.equals(ponto.getTipoEvento())){
-                    // Se o evento é de entrada pega a data hora da entrada
-                    entrada = ponto.getDataHoraEvento();
-                }else{
-                    // Se não é entrada é saída, então pega o intervalo entre a ultima entrada armazenada
-                    LocalDateTime saida = ponto.getDataHoraEvento();
-                    tempoTrabalhado = tempoTrabalhado.plus(Duration.between(entrada, saida));
-                }
-            }
+            //Recupera um duration do trabalhado no dia
+            Duration tempoTrabalhadoDia = Duration.ofHours(pontoDiario
+                    .getTotalTrabalhadoDia().getHoras())
+                    .plus(Duration.ofMinutes(pontoDiario
+                            .getTotalTrabalhadoDia().getMinutos()));
+
             // Vai somando o tempo de cada dia para ter o do Mês
-            tempoTrabalhadoMes = tempoTrabalhadoMes.plus(tempoTrabalhado);
-            // Cria um registro de período do tempo trabalhado do dia
-            Long horas = tempoTrabalhado.toHours();
-            Long min = tempoTrabalhado.minusHours(horas).toMinutes();
-            Periodo periodo = new Periodo(horas, min);
-            // Gera um registro de ponto diário
-            PontoDiario pontoDiario = new PontoDiario(pontosDoDia, data, periodo);
+            tempoTrabalhadoMes = tempoTrabalhadoMes.plus(tempoTrabalhadoDia);
+
             // Adiciona ponto diário a lista
             pontosDiarios.add(pontoDiario);
         }
+        // Geração do periodo trabalhado do mês
         Long horas = tempoTrabalhadoMes.toHours();
         Long min = tempoTrabalhadoMes.minusHours(horas).toMinutes();
         Periodo periodoMes = new Periodo(horas, min);
+        //Gera o report com os valores do mês
         PontoReport pontoReport = new PontoReport(pontosDiarios, mesAnoRef, periodoMes);
         return pontoReport;
     }
 
     @Override
-    public Ponto buscaPorData(Date data) throws EntidadeNaoEncontradaException {
-        Optional<Ponto> pontoEncontrado = clienteRepositoryAdapterGateway.buscaPorData(data);
-        if (!pontoEncontrado.isPresent()) {
-            throw new EntidadeNaoEncontradaException("Entidade Não encontrada");
+    public PontoDiario buscaPorData(UUID usuarioId, LocalDate data) throws EntidadeNaoEncontradaException {
+        List<Ponto> pontoEncontrado = clienteRepositoryAdapterGateway.findByUsuarioIdAndData(usuarioId, data);
+        return this.generatePontoDiarioByPontoList(pontoEncontrado,data);
+    }
+
+    private PontoDiario generatePontoDiarioByPontoList(List<Ponto> pontosDoDia, LocalDate data){
+        // Para armazenar a data da ultima entrada
+        LocalDateTime entrada = null;
+        // Armazenar o tempo entre os intervalos (Inicializando com zero)
+        Duration tempoTrabalhado = Duration.ZERO;
+
+        // Loop para pegar os lançamentos do e contabilizar os intervalos de entradas e saídas
+        for (Ponto ponto: pontosDoDia) {
+            if(PontoEventType.ENTRADA.equals(ponto.getTipoEvento())){
+                // Se o evento é de entrada pega a data hora da entrada
+                entrada = ponto.getDataHoraEvento();
+            }else{
+                // Se não é entrada é saída, então pega o intervalo entre a ultima entrada armazenada
+                LocalDateTime saida = ponto.getDataHoraEvento();
+                tempoTrabalhado = tempoTrabalhado.plus(Duration.between(entrada, saida));
+            }
         }
-        return pontoEncontrado.get();
+        // Vai somando o tempo de cada dia para ter o do Mês
+        // Cria um registro de período do tempo trabalhado do dia
+        Long horas = tempoTrabalhado.toHours();
+        Long min = tempoTrabalhado.minusHours(horas).toMinutes();
+        Periodo periodo = new Periodo(horas, min);
+        // Gera um registro de ponto diário
+        return new PontoDiario(pontosDoDia, data, periodo);
     }
 }

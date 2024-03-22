@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +52,15 @@ public class PontoRepositoryAdapterGateway implements IPontoRepositoryAdapterGat
     @Override
     public List<Ponto> findByUsuarioIdAndMesEAno(UUID usuarioId, int mes, int ano) {
         List<PontoEntity> pontosRecuperados = springPontoRepository.findByUsuarioIdAndMesEAno(usuarioId, mes, ano);
+        List<Ponto> pontos = pontosRecuperados.stream()
+                .map(PontoEntity::toPonto) // Converte cada PontoEntity em Ponto
+                .collect(Collectors.toList()); // Coleta os resultados em uma lista
+        return pontos;
+    }
+
+    @Override
+    public List<Ponto> findByUsuarioIdAndData(UUID usuarioId, LocalDate data) {
+        List<PontoEntity> pontosRecuperados = springPontoRepository.findByUsuarioIdAndData(usuarioId, data);
         List<Ponto> pontos = pontosRecuperados.stream()
                 .map(PontoEntity::toPonto) // Converte cada PontoEntity em Ponto
                 .collect(Collectors.toList()); // Coleta os resultados em uma lista
