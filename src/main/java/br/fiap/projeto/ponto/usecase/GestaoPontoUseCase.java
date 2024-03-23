@@ -2,6 +2,7 @@ package br.fiap.projeto.ponto.usecase;
 
 import br.fiap.projeto.ponto.entity.*;
 import br.fiap.projeto.ponto.entity.enums.PontoEventType;
+import br.fiap.projeto.ponto.entity.integration.ColaboradorPonto;
 import br.fiap.projeto.ponto.usecase.exception.EntidadeNaoEncontradaException;
 import br.fiap.projeto.ponto.usecase.exception.EntradaInvalidaException;
 import br.fiap.projeto.ponto.usecase.port.IGestaoPontoUsecase;
@@ -18,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GestaoPontoUseCase implements IGestaoPontoUsecase {
+    public static final String COLABORADOR_AUSENTE = "Colaborador Não encontrado!";
 
     private final IPontoRepositoryAdapterGateway clienteRepositoryAdapterGateway;
     private final IPontoColaboradorIntegrationAdapterGateway pontoColaboradorIntegrationAdapterGateway;
@@ -48,6 +50,13 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         if (ano < 2000) {
             throw new EntradaInvalidaException(Ponto.ANO_INVALIDO);
         }
+
+        ColaboradorPonto colaborador = pontoColaboradorIntegrationAdapterGateway.buscaColaborador(usuarioId.toString());
+
+        if (colaborador == null){
+            throw new EntradaInvalidaException(COLABORADOR_AUSENTE);
+        }
+
         MesAno mesAnoRef = new MesAno(mes,ano);
         // Recupera todos os pontos lançados do mês
         List<Ponto> pontos = clienteRepositoryAdapterGateway.findByUsuarioIdAndMesEAno(usuarioId, mes, ano);
@@ -70,7 +79,7 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
             List<Ponto> pontosDoDia = entry.getValue();
 
             //Recupera o trabalhado no dia
-            PontoDiario pontoDiario = generatePontoDiarioByPontoList(pontosDoDia, data);
+            PontoDiario pontoDiario = generatePontoDiarioByPontoList(pontosDoDia, data, colaborador.getNome());
 
             //Recupera um duration do trabalhado no dia
             Duration tempoTrabalhadoDia = Duration.ofHours(pontoDiario
@@ -89,20 +98,27 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         Long min = tempoTrabalhadoMes.minusHours(horas).toMinutes();
         Periodo periodoMes = new Periodo(horas, min);
         //Gera o report com os valores do mês
-        PontoReport pontoReport = new PontoReport(pontosDiarios, mesAnoRef, periodoMes);
+        PontoReport pontoReport = new PontoReport(pontosDiarios, mesAnoRef, periodoMes, colaborador.getNome());
 
-        this.EnviarEmail(pontoReport);
+        this.EnviarEmail(pontoReport, colaborador.getEmail());
 
         return pontoReport;
     }
 
     @Override
-    public PontoDiario buscaPorData(UUID usuarioId, LocalDate data) throws EntidadeNaoEncontradaException {
+    public PontoDiario buscaPorData(UUID usuarioId, LocalDate data) throws EntradaInvalidaException {
         List<Ponto> pontoEncontrado = clienteRepositoryAdapterGateway.findByUsuarioIdAndData(usuarioId, data);
-        return this.generatePontoDiarioByPontoList(pontoEncontrado,data);
+
+        ColaboradorPonto colaborador = pontoColaboradorIntegrationAdapterGateway.buscaColaborador(usuarioId.toString());
+
+        if (colaborador == null){
+            throw new EntradaInvalidaException(COLABORADOR_AUSENTE);
+        }
+
+        return this.generatePontoDiarioByPontoList(pontoEncontrado, data, colaborador.getNome());
     }
 
-    private PontoDiario generatePontoDiarioByPontoList(List<Ponto> pontosDoDia, LocalDate data){
+    private PontoDiario generatePontoDiarioByPontoList(List<Ponto> pontosDoDia, LocalDate data, String nomeColaborador){
         // Para armazenar a data da ultima entrada
         LocalDateTime entrada = null;
         // Armazenar o tempo entre os intervalos (Inicializando com zero)
@@ -125,12 +141,11 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         Long min = tempoTrabalhado.minusHours(horas).toMinutes();
         Periodo periodo = new Periodo(horas, min);
         // Gera um registro de ponto diário
-        return new PontoDiario(pontosDoDia, data, periodo);
+        return new PontoDiario(pontosDoDia, data, periodo, nomeColaborador);
     }
 
-    private void EnviarEmail(PontoReport pontoReport){
+    private void EnviarEmail(PontoReport pontoReport, String destinatario){
         EmailSender emailSender = new EmailSender();
-        String destinatario = "pos.fiap.grupo.64@gmail.com";
         int mes = pontoReport.getReferencia().getMes();
         int ano = pontoReport.getReferencia().getAno();
         // Formatar o mês com dois dígitos
@@ -150,6 +165,7 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<html><body>");
         htmlBuilder.append("<h1>Relatório de Pontos</h1>");
+        htmlBuilder.append("<p>Colaborador: ").append(pontoReport.getNomeColaborador()).append("</p>");
         htmlBuilder.append("<p>Data de Referência: ").append(pontoReport.getReferencia().getMes()).append("/").append(pontoReport.getReferencia().getAno()).append("</p>");
         htmlBuilder.append("<p>Total Horas trabalhado no Mês: ").append(formatarPeriodo(pontoReport.getTotalTrabalhadoMes())).append("</p>");
         htmlBuilder.append("<table border='1'>");

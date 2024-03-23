@@ -6,11 +6,13 @@ public class PontoReport {
     List<PontoDiario> pontoMensal;
     MesAno referencia;
     Periodo totalTrabalhadoMes;
+    String nomeColaborador;
 
-    public PontoReport(List<PontoDiario> pontoMensal, MesAno referencia, Periodo totalTrabalhadoMes) {
+    public PontoReport(List<PontoDiario> pontoMensal, MesAno referencia, Periodo totalTrabalhadoMes, String nomeColaborador){
         this.pontoMensal = pontoMensal;
         this.referencia = referencia;
         this.totalTrabalhadoMes = totalTrabalhadoMes;
+        this.nomeColaborador = nomeColaborador;
     }
 
     public List<PontoDiario> getPontoMensal() {
@@ -24,4 +26,6 @@ public class PontoReport {
     public Periodo getTotalTrabalhadoMes() {
         return totalTrabalhadoMes;
     }
-}
+    public String getNomeColaborador() {
+        return nomeColaborador;
+    }}

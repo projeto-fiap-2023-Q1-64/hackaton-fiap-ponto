@@ -12,10 +12,7 @@ import br.fiap.projeto.ponto.usecase.exception.EntradaInvalidaException;
 import br.fiap.projeto.ponto.usecase.port.IGestaoPontoUsecase;
 
 import java.time.LocalDate;
-import java.util.Date;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class PontoRestAdapterController implements IPontoRestAdapterController {
 
@@ -39,7 +36,7 @@ public class PontoRestAdapterController implements IPontoRestAdapterController {
     }
 
     @Override
-    public PontoDiarioDTO buscaPorData(UUID usuarioId, LocalDate data) throws EntidadeNaoEncontradaException {
+    public PontoDiarioDTO buscaPorData(UUID usuarioId, LocalDate data) throws EntidadeNaoEncontradaException, EntradaInvalidaException {
         PontoDiario pontoRecuperado = gestaoClienteUsecase.buscaPorData(usuarioId, data);
         return new PontoDiarioDTO(pontoRecuperado);
     }
