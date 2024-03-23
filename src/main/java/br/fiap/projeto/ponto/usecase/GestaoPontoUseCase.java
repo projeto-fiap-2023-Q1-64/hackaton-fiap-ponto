@@ -5,6 +5,7 @@ import br.fiap.projeto.ponto.entity.enums.PontoEventType;
 import br.fiap.projeto.ponto.usecase.exception.EntidadeNaoEncontradaException;
 import br.fiap.projeto.ponto.usecase.exception.EntradaInvalidaException;
 import br.fiap.projeto.ponto.usecase.port.IGestaoPontoUsecase;
+import br.fiap.projeto.ponto.usecase.port.IPontoColaboradorIntegrationAdapterGateway;
 import br.fiap.projeto.ponto.usecase.port.IPontoRepositoryAdapterGateway;
 import br.fiap.projeto.ponto.utils.EmailSender;
 
@@ -19,9 +20,11 @@ import java.util.stream.Collectors;
 public class GestaoPontoUseCase implements IGestaoPontoUsecase {
 
     private final IPontoRepositoryAdapterGateway clienteRepositoryAdapterGateway;
+    private final IPontoColaboradorIntegrationAdapterGateway pontoColaboradorIntegrationAdapterGateway;
 
-    public GestaoPontoUseCase(IPontoRepositoryAdapterGateway pontoRepository) {
+    public GestaoPontoUseCase(IPontoRepositoryAdapterGateway pontoRepository, IPontoColaboradorIntegrationAdapterGateway pontoColaboradorIntegrationAdapterGateway) {
         this.clienteRepositoryAdapterGateway = pontoRepository;
+        this.pontoColaboradorIntegrationAdapterGateway = pontoColaboradorIntegrationAdapterGateway;
     }
 
     @Override
