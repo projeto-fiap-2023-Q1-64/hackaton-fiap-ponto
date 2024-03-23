@@ -4,15 +4,16 @@ import br.fiap.projeto.ponto.entity.*;
 import br.fiap.projeto.ponto.entity.enums.PontoEventType;
 import br.fiap.projeto.ponto.usecase.exception.EntidadeNaoEncontradaException;
 import br.fiap.projeto.ponto.usecase.exception.EntradaInvalidaException;
-import br.fiap.projeto.ponto.usecase.port.IPontoRepositoryAdapterGateway;
 import br.fiap.projeto.ponto.usecase.port.IGestaoPontoUsecase;
+import br.fiap.projeto.ponto.usecase.port.IPontoRepositoryAdapterGateway;
+import br.fiap.projeto.ponto.utils.EmailSender;
 
+import javax.mail.MessagingException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class GestaoPontoUseCase implements IGestaoPontoUsecase {
@@ -86,6 +87,9 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         Periodo periodoMes = new Periodo(horas, min);
         //Gera o report com os valores do mês
         PontoReport pontoReport = new PontoReport(pontosDiarios, mesAnoRef, periodoMes);
+
+        this.EnviarEmail(pontoReport);
+
         return pontoReport;
     }
 
@@ -119,5 +123,71 @@ public class GestaoPontoUseCase implements IGestaoPontoUsecase {
         Periodo periodo = new Periodo(horas, min);
         // Gera um registro de ponto diário
         return new PontoDiario(pontosDoDia, data, periodo);
+    }
+
+    private void EnviarEmail(PontoReport pontoReport){
+        EmailSender emailSender = new EmailSender();
+        String destinatario = "pos.fiap.grupo.64@gmail.com";
+        int mes = pontoReport.getReferencia().getMes();
+        int ano = pontoReport.getReferencia().getAno();
+        // Formatar o mês com dois dígitos
+        String mesFormatado = String.format("%02d", mes);
+        String assunto = "Relatório de ponto referente a " + mesFormatado + "/" + ano;
+
+        String mailContent = gerarHTMLRelatorio(pontoReport);
+
+        try {
+            emailSender.enviarEmail(destinatario, assunto , mailContent);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String gerarHTMLRelatorio(PontoReport pontoReport) {
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html><body>");
+        htmlBuilder.append("<h1>Relatório de Pontos</h1>");
+        htmlBuilder.append("<p>Data de Referência: ").append(pontoReport.getReferencia().getMes()).append("/").append(pontoReport.getReferencia().getAno()).append("</p>");
+        htmlBuilder.append("<p>Total Horas trabalhado no Mês: ").append(formatarPeriodo(pontoReport.getTotalTrabalhadoMes())).append("</p>");
+        htmlBuilder.append("<table border='1'>");
+        htmlBuilder.append("<tr><th>Data</th><th>Entrada 1</th><th>Saída 1</th><th>Entrada 2</th><th>Saída 2</th><th>Total Horas Trabalhadas</th></tr>");
+
+        // Iterar sobre os pontos diários e adicionar cada um à tabela
+        for (PontoDiario pontoDiario : pontoReport.getPontoMensal()) {
+            htmlBuilder.append("<tr>");
+            htmlBuilder.append("<td>").append(pontoDiario.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append("</td>");
+
+            // Iterar sobre os pontos do dia
+            int entradas = 0;
+            int saidas = 0;
+            for (Ponto ponto : pontoDiario.getPontos()) {
+                if (ponto.getTipoEvento() == PontoEventType.ENTRADA && entradas < 2) {
+                    htmlBuilder.append("<td>").append(ponto.getDataHoraEvento().format(DateTimeFormatter.ofPattern("HH:mm"))).append("</td>");
+                    entradas++;
+                } else if (ponto.getTipoEvento() == PontoEventType.SAIDA && saidas < 2) {
+                    htmlBuilder.append("<td>").append(ponto.getDataHoraEvento().format(DateTimeFormatter.ofPattern("HH:mm"))).append("</td>");
+                    saidas++;
+                }
+            }
+
+            // Preencher as células restantes com vazio, se necessário
+            for (int i = entradas; i < 2; i++) {
+                htmlBuilder.append("<td></td>");
+            }
+            for (int i = saidas; i < 2; i++) {
+                htmlBuilder.append("<td></td>");
+            }
+
+            htmlBuilder.append("<td>").append(formatarPeriodo(pontoDiario.getTotalTrabalhadoDia())).append("</td>");
+            htmlBuilder.append("</tr>");
+        }
+
+        htmlBuilder.append("</table>");
+        htmlBuilder.append("</body></html>");
+        return htmlBuilder.toString();
+    }
+
+    private String formatarPeriodo(Periodo periodo) {
+        return String.format("%02d:%02d", periodo.getHoras(), periodo.getMinutos());
     }
 }
