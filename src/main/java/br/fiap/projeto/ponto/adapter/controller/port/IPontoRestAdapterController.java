@@ -1,10 +1,12 @@
 package br.fiap.projeto.ponto.adapter.controller.port;
 
+import br.fiap.projeto.ponto.adapter.controller.rest.response.PontoDiarioDTO;
 import br.fiap.projeto.ponto.adapter.controller.rest.response.PontoReportDTO;
 import br.fiap.projeto.ponto.adapter.controller.rest.response.PontoResponseDTO;
 import br.fiap.projeto.ponto.usecase.exception.EntidadeNaoEncontradaException;
 import br.fiap.projeto.ponto.usecase.exception.EntradaInvalidaException;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -15,5 +17,5 @@ public interface IPontoRestAdapterController {
 
     PontoResponseDTO insere(UUID usuarioID) throws EntradaInvalidaException, EntidadeNaoEncontradaException;
 
-    PontoResponseDTO buscaPorData(Date data) throws EntidadeNaoEncontradaException;
+    PontoDiarioDTO buscaPorData(UUID usuarioID, LocalDate data) throws EntidadeNaoEncontradaException;
 }

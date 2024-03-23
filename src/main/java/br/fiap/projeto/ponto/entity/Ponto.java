@@ -8,8 +8,6 @@ import java.util.UUID;
 
 public class Ponto {
     public static final String CODIGO_AUSENTE = "Informe o código do cliente!";
-    public static final String MES_AUSENTE = "Informe o mês!";
-    public static final String ANO_AUSENTE = "Informe o ano!";
     public static final String MES_INVALIDO = "Informe um mês válido!";
     public static final String ANO_INVALIDO = "Informe um ano válido!";
     private UUID pontoId;
